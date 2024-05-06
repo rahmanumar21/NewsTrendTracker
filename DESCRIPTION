@@ -1,0 +1,21 @@
+Package: NewsTrendTracker
+Type: Package
+Title: Automatic Analysis of Trending Topics on the Internet
+Version: 1.0.0
+Author: A. Rahman
+Maintainer: The package maintainer <a.rahman.dokt@pw.edu.pl>
+Description: An R package for automatic analysis of trending topics on the internet. 
+             NewsTrendTracker provides functions for web scraping news data from multiple 
+             English-language news websites, processing text data, and analyzing keyword 
+             trends using the TF-IDF (Term Frequency-Inverse Document Frequency) method. 
+             The package aims to simplify the process of gathering, processing, and visualizing 
+             news data to identify trending topics and insights from online news sources.
+Encoding: UTF-8
+LazyData: true
+Imports:
+    rvest,
+    dplyr,
+    lubridate,
+    ggplot2,
+    tm
+RoxygenNote: 7.3.1

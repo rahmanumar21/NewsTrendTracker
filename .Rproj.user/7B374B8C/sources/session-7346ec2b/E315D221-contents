@@ -1,0 +1,99 @@
+# Function to load and aggregate data from CSV file
+load_data <- function() {
+  files <- tryCatch({
+    list.files(pattern = "scraped_data_.*\\.csv")
+  }, error = function(e) {
+    cat("Error in reading files: ", e$message, "\n")
+    return(NULL)
+  })
+
+  if (is.null(files)) return(NULL)
+
+  data <- tryCatch({
+    do.call(rbind, lapply(files, utils::read.csv, stringsAsFactors = FALSE))
+  }, error = function(e) {
+    cat("Error in loading data: ", e$message, "\n")
+    return(NULL)
+  })
+
+  cat("Data loading completed successfully!\n")
+  return(data)
+}
+
+# Function to preprocess text: tokenize, remove stopwords and punctuation, and convert to lowercase
+preprocess_text <- function(text) {
+  tryCatch({
+    text <- tolower(text)
+    text <- tm::removePunctuation(text)
+    text <- tm::removeWords(text, tm::stopwords("en"))
+    return(trimws(text))  # Trim white spaces
+  }, error = function(e) {
+    cat("Error in preprocessing text: ", e$message, "\n")
+    return("")
+  })
+}
+
+# Function to calculate TF-IDF
+calculate_tfidf <- function(data) {
+  if (is.null(data)) {
+    cat("Data is null, skipping TF-IDF calculation.\n")
+    return(NULL)
+  }
+
+  data <- data[!is.na(data$title) & data$title != "", ]
+
+  tryCatch({
+    data$title <- sapply(data$title, preprocess_text)
+
+    corpus <- tm::Corpus(tm::VectorSource(data$title))
+
+    dtm <- tm::DocumentTermMatrix(corpus)
+    tfidf <- tm::weightTfIdf(dtm)
+
+    tfidf_df <- as.data.frame(as.matrix(tfidf))
+    cat("TF-IDF calculation completed successfully!\n")
+    return(tfidf_df)
+  }, error = function(e) {
+    cat("Error in calculating TF-IDF: ", e$message, "\n")
+    return(NULL)
+  })
+}
+
+# Function to analyze keyword trends, visualize, and save to CSV
+analyze_trends <- function(tfidf_df) {
+  if (is.null(tfidf_df)) {
+    cat("TF-IDF data frame is null, skipping trend analysis.\n")
+    return(NULL)
+  }
+
+  tryCatch({
+    tfidf_mean <- colMeans(tfidf_df)
+    top_keywords <- sort(tfidf_mean, decreasing = TRUE)[1:10]
+
+    df <- data.frame(keyword = names(top_keywords), tfidf = top_keywords)
+
+    # Save top keywords to CSV
+    write.csv(df, "top_keywords_tfidf.csv", row.names = FALSE)
+    cat("Top keywords saved to CSV.\n")
+
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = stats::reorder(keyword, tfidf), y = tfidf)) +
+      ggplot2::geom_bar(stat = "identity") +
+      ggplot2::coord_flip() +
+      ggplot2::labs(title = "Top 10 Keywords by TF-IDF", x = "Keyword", y = "TF-IDF") +
+      ggplot2::theme_minimal()
+
+    ggplot2::ggsave("tfidf_plot.png", plot = p, width = 8, height = 6)
+    cat("Plot saved as 'tfidf_plot.png'.\n")
+
+    print(p)
+  }, error = function(e) {
+    cat("Error in analyzing trends: ", e$message, "\n")
+    return(NULL)
+  })
+  cat("Analysis completed successfully!\n")
+}
+
+# Run the analysis
+data <- load_data()
+tfidf_df <- calculate_tfidf(data)
+analyze_trends(tfidf_df)
